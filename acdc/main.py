@@ -168,6 +168,7 @@ parser.add_argument('--seed', type=int, default=1234)
 parser.add_argument("--max-num-epochs",type=int, default=100_000)
 parser.add_argument('--single-step', action='store_true', help='Use single step, mostly for testing')
 parser.add_argument("--abs-value-threshold", action='store_true', help='Use the absolute value of the result to check threshold')
+parser.add_argument('--model-type', type=str, default="attn-only-4l", help="Which model to use for the task")
 
 if ipython is not None:
     # We are in a notebook
@@ -275,6 +276,7 @@ elif TASK == "docstring":
         device=DEVICE,
         metric_name=args.metric,
         correct_incorrect_wandb=True,
+        model_type=args.model_type
     )
 elif TASK == "greaterthan":
     num_examples = 100

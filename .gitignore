@@ -60,3 +60,9 @@ pts/
 **/.DS_Store
 
 ob-jupyter
+
+
+# ignore slurm outputs
+*.out
+*.err
+

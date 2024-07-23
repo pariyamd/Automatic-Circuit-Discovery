@@ -2,6 +2,7 @@ from experiments.launcher import KubernetesJob, launch
 import subprocess
 import argparse
 import numpy as np
+import os
 
 CPU = 4
 
@@ -9,7 +10,8 @@ def main(
     testing: bool,
     is_adria: bool,
 ):
-    thresholds = 10 ** np.linspace(-2, 0.5, 21)
+    # thresholds = 10 ** np.linspace(-2, 0.5, 21)
+    thresholds = [0.5623]
     seed = 424671755
 
     commands: list[list[str]] = []
@@ -23,21 +25,24 @@ def main(
                         "--task=induction",
                         f"--threshold={threshold:.5f}",
                         "--using-wandb",
-                        f"--wandb-run-name=agarriga-acdc-{len(commands):03d}",
-                        "--wandb-group-name=adria-induction-3",
-                        f"--device=cpu",
+                        f"--wandb-run-name=launch_induction-acdc-{len(commands):03d}",
+                        "--wandb-group-name=acdc-induction",
+                        f"--device=cuda",
                         f"--reset-network={reset_network}",
                         f"--seed={seed}",
                         f"--metric={loss_type}",
                         f"--torch-num-threads={CPU}",
-                        "--wandb-dir=/training/acdc",
+                        "--wandb-dir=wandb_runs/",
                         f"--wandb-mode={'offline' if testing else 'online'}",
                     ]
                     if zero_ablation:
                         command.append("--zero-ablation")
 
                     commands.append(command)
-
+    for command in commands:
+        print("-----------")
+        print("Running", " ".join(command))
+        
     if is_adria:
         launch(
             commands,
@@ -54,6 +59,7 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    print("os.getcwd():", os.getcwd())
     parser.add_argument("--testing", action="store_true")
     parser.add_argument("--is-adria", action="store_true")
     main(

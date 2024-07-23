@@ -425,8 +425,8 @@ def get_nodes_mask_dict(model: HookedTransformer):
 
 parser = argparse.ArgumentParser("train_induction")
 parser.add_argument("--wandb-name", type=str, default="subnetwork-probing")
-parser.add_argument("--wandb-project", type=str, default="subnetwork-probing")
-parser.add_argument("--wandb-entity", type=str,  default="remix_school-of-rock")
+parser.add_argument("--wandb-project", type=str, default="jailbreak_llm")
+parser.add_argument("--wandb-entity", type=str,  default="pariya_mehrbod")
 parser.add_argument("--wandb-group", type=str,  default="subnetwork-probing")
 parser.add_argument("--wandb-dir", type=str, default="/tmp/wandb")
 parser.add_argument("--wandb-mode", type=str, default="online")
@@ -444,6 +444,7 @@ parser.add_argument("--seq-len", type=int, default=300)
 parser.add_argument("--n-loss-average-runs", type=int, default=20)
 parser.add_argument("--task", type=str, required=True)
 parser.add_argument("--torch-num-threads", type=int, default=0, help="How many threads to use for torch (0=all)")
+parser.add_argument('--model-type', type=str, default="attn-only-4l", help="Which model to use for the task")
 
 
 def get_transformer_config():
@@ -528,6 +529,7 @@ if __name__ == "__main__":
             metric_name=args.loss_type,
             correct_incorrect_wandb=True,
         )
+        print("got the all_task_things for docstring task")
     elif args.task == "greaterthan":
         all_task_things = get_all_greaterthan_things(
             num_examples=args.num_examples,
@@ -548,6 +550,7 @@ if __name__ == "__main__":
         raise ValueError(f"Unknown task {args.task}")
 
     kwargs = dict(**all_task_things.tl_model.cfg.__dict__)
+    print("got the kwargs for task",args.task, "\n", kwargs)
     for kwarg_string in [
         "use_split_qkv_input",
         "n_devices",
@@ -557,6 +560,25 @@ if __name__ == "__main__":
         "default_prepend_bos",
         "dtype",
         "add_special_tokens",
+        # the following parameters are added by pariya for the docstring task
+        "attn_scale",
+        "tokenizer_prepends_bos",
+        "n_key_value_heads",
+        "post_embedding_ln",
+        "rotary_base",
+        "trust_remote_code",
+        "rotary_adjacent_pairs",
+        "load_in_4bit",
+        "num_experts",
+        "experts_per_token",
+        "relative_attention_max_distance",
+        "relative_attention_num_buckets",
+        "decoder_start_token_id",
+        "tie_word_embeddings",
+        "use_normalization_before_and_after",
+        "attn_scores_soft_cap",
+        "output_logits_soft_cap"
+
     ]:
         if kwarg_string in kwargs:
             del kwargs[kwarg_string]

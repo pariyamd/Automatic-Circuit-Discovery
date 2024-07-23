@@ -37,6 +37,7 @@ from acdc.TLACDCEdge import (
 )  # these introduce several important classes !!!
 
 from transformer_lens import HookedTransformer
+from transformers import LlamaForCausalLM, LlamaTokenizer
 from acdc.acdc_utils import kl_divergence
 
 
@@ -57,10 +58,70 @@ class AllDataThings:
 def get_docstring_model(device="cuda"):
     tl_model = HookedTransformer.from_pretrained(
         "attn-only-4l",
+        dtype=torch.float32,
     )
     tl_model.set_use_attn_result(True)
     tl_model.set_use_split_qkv_input(True)
     tl_model.to(device)
+    return tl_model
+
+def get_llama_2_7b_hf(device,seq_len) -> HookedTransformer:
+    LLAMA_2_7B_PATH = "meta-llama/Llama-2-7b-hf"
+
+    tokenizer = LlamaTokenizer.from_pretrained(LLAMA_2_7B_PATH, max_length=seq_len) # not sure if this imposes the seq len to 300
+    tokenizer.pad_token = tokenizer.eos_token
+    hf_model = LlamaForCausalLM.from_pretrained(LLAMA_2_7B_PATH, low_cpu_mem_usage=True)
+    tl_model = HookedTransformer.from_pretrained(LLAMA_2_7B_PATH,
+                                                 hf_model = hf_model,
+                                                 device = device,
+                                                 fold_ln = False,
+                                                 center_writing_weights = False,
+                                                 center_unembed = False,
+                                                 tokenizer = tokenizer,
+                                                 dtype = torch.float16,
+                                                #  n_devices = 2,
+                                                 move_to_device = True) # TODO PARIYA use_hook_mlp_in
+    tl_model.set_use_hook_mlp_in(True)
+    tl_model.set_use_attn_result(True)
+    # tl_model.set_use_split_qkv_input(True)
+    tl_model = tl_model.to(device)
+    return tl_model
+
+# def get_llama_2_7b(device="cuda") -> HookedTransformer:
+#     from transformers import LlamaForCausalLM
+#     from accelerate import init_empty_weights, load_checkpoint_and_dispatch
+#     from huggingface_hub import snapshot_download
+
+#     checkpoint_location = snapshot_download("decapoda-research/llama-7b-hf")
+
+#     with init_empty_weights():  # Takes up near zero memory
+#         model = LlamaForCausalLM.from_pretrained(checkpoint_location)
+
+#     model = load_checkpoint_and_dispatch(
+#         model,
+#         checkpoint_location,
+#         device_map="auto",
+#         dtype=torch.float16,
+#         no_split_module_classes=["LlamaDecoderLayer"],
+#     )
+
+def get_llama_7b(device="cuda") -> HookedTransformer:
+    tokenizer = LlamaTokenizer.from_pretrained("/home/mila/p/paria.mehrbod/scratch/jailbreak_llm/llama",max_length=50)
+    hf_model = LlamaForCausalLM.from_pretrained("/home/mila/p/paria.mehrbod/scratch/jailbreak_llm/llama", low_cpu_mem_usage=True)
+
+    tl_model = HookedTransformer.from_pretrained(
+        "llama-7b",
+        hf_model=hf_model,
+        device="cpu",
+        fold_ln=False,
+        center_writing_weights=False,
+        center_unembed=False,
+        tokenizer=tokenizer,
+    )
+    tl_model.set_use_hook_mlp_in(True)
+    tl_model.set_use_attn_result(True)
+    tl_model.set_use_split_qkv_input(True)
+    tl_model = tl_model.to(device)
     return tl_model
 
 def get_all_docstring_things(
@@ -71,8 +132,13 @@ def get_all_docstring_things(
     dataset_version="random_random",
     correct_incorrect_wandb=True,
     return_one_element=True,
+    model_type = "attn-only-4l",
 ) -> AllDataThings:
-    tl_model = get_docstring_model(device=device)
+    if model_type == "attn-only-4l":
+        tl_model = get_docstring_model(device=device)
+    else:
+        print("llama2 7B model loaded...")
+        tl_model = get_llama_7b(device=device)
 
     docstring_ind_prompt_kwargs = dict(
         n_matching_args=3, n_def_prefix_args=2, n_def_suffix_args=1, n_doc_prefix_args=0, met_desc_len=3, arg_desc_len=2

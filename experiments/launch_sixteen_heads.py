@@ -75,7 +75,9 @@ parser.add_argument('--reset-network', type=int, default=0, help="Whether to res
 parser.add_argument('--metric', type=str, default="kl_div", help="Which metric to use for the experiment")
 parser.add_argument('--seed', type=int, default=1234)
 parser.add_argument('--torch-num-threads', type=int, default=0, help="How many threads to use for torch (0=all)")
+parser.add_argument('--model-type', type=str, default="attn-only-4l", help="Which model to use for the task")
 
+parser.add_argument('--torch-num-threads', type=int, default=0, help="How many threads to use for torch (0=all)")
 # for now, force the args to be the same as the ones in the notebook, later make this a CLI tool
 if get_ipython() is not None: # heheh get around this failing in notebooks
     args = parser.parse_args([line.strip() for line in r"""--task=or_gate \
@@ -128,7 +130,7 @@ elif args.task == "docstring":
     num_examples = 50
     seq_len = 41
     things = get_all_docstring_things(num_examples=num_examples, seq_len=seq_len, device=args.device,
-                                                metric_name=args.metric, correct_incorrect_wandb=True)
+                                                metric_name=args.metric, correct_incorrect_wandb=True, model_type=args.model_type)
 elif args.task == "greaterthan":
     num_examples = 100
     things = get_all_greaterthan_things(num_examples=num_examples, metric_name=args.metric, device=args.device)

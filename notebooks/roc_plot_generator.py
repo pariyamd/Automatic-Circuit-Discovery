@@ -163,6 +163,7 @@ parser.add_argument('--seed', type=int, default=42, help="Random seed")
 parser.add_argument("--canonical-graph-save-dir", type=str, default="DEFAULT")
 parser.add_argument("--only-save-canonical", action="store_true", help="Only save the canonical graph")
 parser.add_argument("--ignore-missing-score", action="store_true", help="Ignore runs that are missing score")
+parser.add_argument('--model-type', type=str, default="attn-only-4l", help="Which model to use for the task")
 
 if IPython.get_ipython() is not None:
     args = parser.parse_args("--task=ioi --metric=kl_div --alg=sp".split())
@@ -262,7 +263,7 @@ if TASK == "docstring":
     num_examples = 50
     seq_len = 41
     things = get_all_docstring_things(num_examples=num_examples, seq_len=seq_len, device=DEVICE,
-                                                metric_name=METRIC, correct_incorrect_wandb=False)
+                                                metric_name=METRIC, correct_incorrect_wandb=False, model_type=args.model_type)
     get_true_edges = get_docstring_subgraph_true_edges
     SP_PRE_RUN_FILTER["group"] = "docstring3"
 

@@ -94,18 +94,22 @@ class BatchedPrompts:
         if self.correct_answers[0][0][0] != " ":
             print("THE CORRECT ANSWER DOES NOT START WITH A SPACE -- ARE YOU SURE ABOUT THAT?")
         self.wrong_answers = [p.wrong_answers for p in prompts]
+        print("shape of clean prompt", len(self.clean_prompt),self.clean_prompt[0])
+        # print("shape of corrupt prompt", len(self.corrupt_prompt),self.corrupt_prompt[0])
+        print("shape of correct answers", len(self.correct_answers),self.correct_answers[0])
 
-        self.clean_tokens = torch.stack([model.to_tokens(batch, prepend_bos=True)[0] for batch in self.clean_prompt])
+        self.clean_tokens = model.to_tokens(self.clean_prompt, prepend_bos=True)
+        print("shape of clean tokens", self.clean_tokens.shape)
         if isinstance(prompts[0].corrupt_prompt, str):
-            self.corrupt_tokens = torch.stack([model.to_tokens(batch, prepend_bos=True)[0] for batch in self.corrupt_prompt])
+            self.corrupt_tokens = model.to_tokens(self.corrupt_prompt, prepend_bos=True)
         else:
             self.corrupt_tokens = {
-                key: 
-                torch.stack([model.to_tokens(batch, prepend_bos=True)[0] for batch in prompts])
+                key: model.to_tokens(prompts, prepend_bos=True)
                 for key, prompts in self.corrupt_prompt.items()
             }
-
+        
         # [batch, n_correct_tokens]
+        print(model.to_tokens(self.correct_answers[0], prepend_bos=False))
         self.correct_tokens = torch.stack([model.to_tokens(batch, prepend_bos=False)[:, 0] for batch in self.correct_answers])
         # [batch, n_wrong_tokens]
         self.wrong_tokens = torch.stack([model.to_tokens(batch, prepend_bos=False)[:, 0] for batch in self.wrong_answers])
