@@ -28,7 +28,7 @@ def main(TASKS: list[str], group_name: str, run_name: str, testing: bool, use_ku
 
     commands: List[List[str]] = []
     for reset_network in [int(reset_networks)]:
-        for zero_ablation in [0]:
+        for zero_ablation in [1]:
             for task in TASKS:
                 for metric in METRICS_FOR_TASK[task]:
 
@@ -93,24 +93,27 @@ def main(TASKS: list[str], group_name: str, run_name: str, testing: bool, use_ku
                     else:
                         raise ValueError("Unknown task")
 
-                    for threshold in [1.0] if testing else thresholds:
+                    for i in [1.0] if testing else range(0,len(thresholds),2):
+                        threshold = thresholds[i]
                         command = [
                             "python",
                             "acdc/main.py",
                             f"--task={task}",
                             f"--threshold={threshold}",
-                            "--using-wandb",
-                            f"--wandb-run-name={wandb_identifier.run_name.format(i=len(commands))}",
-                            f"--wandb-group-name={wandb_identifier.group_name}",
-                            f"--wandb-project-name={wandb_identifier.project}",
+                            # "--using-wandb",
+                            f"--wandb-run-name=launch-acdc-{task}-{len(commands):05d}",
+                            f"--wandb-group-name=acdc-{task}",
+                            f"--wandb-project-name=jailbreak_llm",
                             f"--device={'cuda' if not testing else 'cpu'}" if "tracr" not in task else "--device=cpu",
                             f"--reset-network={reset_network}",
                             f"--seed={random.randint(0, 2**32 - 1)}",
                             f"--metric={metric}",
                             f"--torch-num-threads={CPU}",
-                            "--wandb-dir=/root/.cache/huggingface/tracr-training/acdc",  # If it doesn't exist wandb will use /tmp
+                            "--wandb-dir=wandb_runs/",  # If it doesn't exist wandb will use /tmp
                             f"--wandb-mode=online",
                             f"--max-num-epochs={1 if testing else 40_000}",
+                            "--first-cache-cpu=False",
+                            "--second-cache-cpu=False"
                         ]
                         if zero_ablation:
                             command.append("--zero-ablation")
@@ -118,45 +121,28 @@ def main(TASKS: list[str], group_name: str, run_name: str, testing: bool, use_ku
                             command.append("--abs-value-threshold")
                         commands.append(command)
 
-    launch(
-        commands,
-        name="acdc-spreadsheet",
-        job=None
-        if not use_kubernetes
-        else KubernetesJob(container="ghcr.io/rhaps0dy/automatic-circuit-discovery:181999f", cpu=CPU, gpu=int(use_gpu)),
-        check_wandb=wandb_identifier,
-        just_print_commands=False,
-    )
+    for i, command in enumerate(commands):
+        print(' '.join(command))
+    # launch(
+    #     commands,
+    #     name="acdc-spreadsheet",
+    #     job=None
+    #     if not use_kubernetes
+    #     else KubernetesJob(container="ghcr.io/rhaps0dy/automatic-circuit-discovery:181999f", cpu=CPU, gpu=int(use_gpu)),
+    #     check_wandb=wandb_identifier,
+    #     just_print_commands=False,
+    # )
+
 
 
 if __name__ == "__main__":
-    for reset_networks in [False]:
+    for reset_networks in [True, False]:
         main(
-            TASKS=["ioi"],
-            group_name="abs-value",
-            run_name=f"agarriga-ioi-res{int(reset_networks)}-{{i:05d}}",
+            ["tracr-reverse","tracr-proportion","docstring","induction"], #"ioi","greaterthan"
+            "acdc-spreadsheet",
+            "agarriga-tracr3-{i:05d}",
             testing=False,
-            use_kubernetes=True,
+            use_kubernetes=False,
             reset_networks=reset_networks,
             abs_value_threshold=True,
-            use_gpu=True,
-        )
-
-# if __name__ == "__main__":
-#     for reset_networks in [False, True]:
-#         main(
-#             ["ioi", "greaterthan", "induction", "docstring"],
-#             "reset-networks-neurips",
-#             "agarriga-tracr3-{i:05d}",
-#             testing=False,
-#             use_kubernetes=True,
-#             reset_networks=True,
-#         )
-#         main(
-#             ["induction"],
-#             "adria-induction-3",
-#             "agarriga-induction-{i:05d}",
-#             testing=False,
-#             use_kubernetes=True,
-#             reset_networks=False,
-#         )
+            use_gpu=True,)

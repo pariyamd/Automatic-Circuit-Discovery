@@ -1,0 +1,8 @@
+wandb-name,wandb-project,wandb-entity,wandb-group,device,loss-type,threshold,zero-ablation,reset-subject,seed,task,torch-num-threads,model-type,test_greaterthan,test_kl_div,score,number_of_edges
+launch-acdc-greaterthan-00085,jailbreak_llm,pariya_mehrbod,acdc-greaterthan,cuda,kl_div,1e-06,False,1,3875992193,greaterthan,4,attn-only-4l,0.0006828308105468,9.0625,inf,5
+launch-acdc-greaterthan-00086,jailbreak_llm,pariya_mehrbod,acdc-greaterthan,cuda,kl_div,2.5118864315095823e-06,False,1,3403090732,greaterthan,4,attn-only-4l,0.0006828308105468,9.0625,inf,5
+launch-acdc-greaterthan-00087,jailbreak_llm,pariya_mehrbod,acdc-greaterthan,cuda,kl_div,6.30957344480193e-06,False,1,4107086358,greaterthan,4,attn-only-4l,0.0006828308105468,9.0625,inf,5
+launch-acdc-greaterthan-00088,jailbreak_llm,pariya_mehrbod,acdc-greaterthan,cuda,kl_div,1.584893192461114e-05,False,1,2568453926,greaterthan,4,attn-only-4l,0.0006828308105468,9.0625,inf,5
+launch-acdc-greaterthan-00089,jailbreak_llm,pariya_mehrbod,acdc-greaterthan,cuda,kl_div,3.9810717055349695e-05,False,1,1797059326,greaterthan,4,attn-only-4l,0.0006828308105468,9.0625,inf,5
+launch-acdc-greaterthan-00090,jailbreak_llm,pariya_mehrbod,acdc-greaterthan,cuda,kl_div,0.0001,False,1,2593698170,greaterthan,4,attn-only-4l,0.0006828308105468,9.0625,inf,5
+launch-acdc-greaterthan-00091,jailbreak_llm,pariya_mehrbod,acdc-greaterthan,cuda,greaterthan,0.001,False,1,2377148502,greaterthan,4,attn-only-4l,0.000682830810546875,9.0625,inf,0

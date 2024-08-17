@@ -165,12 +165,12 @@ parser.add_argument("--only-save-canonical", action="store_true", help="Only sav
 parser.add_argument("--ignore-missing-score", action="store_true", help="Ignore runs that are missing score")
 parser.add_argument('--model-type', type=str, default="attn-only-4l", help="Which model to use for the task")
 
-if IPython.get_ipython() is not None:
-    args = parser.parse_args("--task=ioi --metric=kl_div --alg=sp".split())
-    if "arthur" not in __file__:
-        __file__ = "/Users/adria/Documents/2023/ACDC/Automatic-Circuit-Discovery/notebooks/roc_plot_generator.py"
-else:
-    args = parser.parse_args()
+# if IPython.get_ipython() is not None:
+#     args = parser.parse_args("--task=ioi --metric=kl_div --alg=sp".split())
+#     if "arthur" not in __file__:
+#         __file__ = "/Users/adria/Documents/2023/ACDC/Automatic-Circuit-Discovery/notebooks/roc_plot_generator.py"
+# else:
+args = parser.parse_args()
 
 if not args.mode == "edges":
     raise NotImplementedError("Only edges mode is implemented for now")
@@ -215,7 +215,7 @@ else:
     OUT_FILE = None
 
 # defaults
-ACDC_PROJECT_NAME = "remix_school-of-rock/acdc"
+ACDC_PROJECT_NAME = "jailbreak_llm" # pariya's change
 ACDC_PRE_RUN_FILTER = {
     # Purposefully omit ``"state": "finished"``
     "group": "acdc-spreadsheet2",
@@ -227,7 +227,7 @@ ACDC_PRE_RUN_FILTER = {
 ACDC_RUN_FILTER = None
 
 # # for SP # filters are more annoying since some things are nested in groups
-SP_PROJECT_NAME = "remix_school-of-rock/induction-sp-replicate"
+SP_PROJECT_NAME = "jailbreak_llm/induction-sp-replicate"
 SP_PRE_RUN_FILTER = {
     "state": "finished",
     "config.task": TASK,
@@ -238,7 +238,7 @@ SP_PRE_RUN_FILTER = {
 SP_RUN_FILTER = None
 
 # # for 16 heads it's just one run but this way we just use the same code
-SIXTEEN_HEADS_PROJECT_NAME = "remix_school-of-rock/acdc"
+SIXTEEN_HEADS_PROJECT_NAME = "jailbreak_llm/acdc"
 SIXTEEN_HEADS_PRE_RUN_FILTER = {
     "state": "finished",
     "group": "sixteen-heads",
@@ -252,7 +252,7 @@ SIXTEEN_HEADS_RUN_FILTER = None
 USE_POS_EMBED = False
 
 
-ROOT = Path(os.environ["HOME"]) / ".cache" / "artifacts_for_plot"
+ROOT = "cache" / "artifacts_for_plot"
 ROOT.mkdir(exist_ok=True)
 
 #%% [markdown]
@@ -292,7 +292,7 @@ elif TASK in ["tracr-reverse", "tracr-proportion"]: # do tracr
     
     if not ZERO_ABLATION:
         ACDC_PRE_RUN_FILTER.pop("group")
-        ACDC_PROJECT_NAME = "remix_school-of-rock/arthur_tracr_fix"
+        ACDC_PROJECT_NAME = "jailbreak_llm/arthur_tracr_fix"
 
     things = get_all_tracr_things(task=tracr_task, metric_name=METRIC, num_examples=num_examples, device=DEVICE)
 
@@ -306,7 +306,7 @@ elif TASK == "ioi":
 
     if METRIC == "kl_div" and not RESET_NETWORK:
         if ZERO_ABLATION:
-            ACDC_PROJECT_NAME = "remix_school-of-rock/arthur_ioi_sweep"
+            ACDC_PROJECT_NAME = "jailbreak_llm/arthur_ioi_sweep"
             del ACDC_PRE_RUN_FILTER["config.reset_network"]
             ACDC_PRE_RUN_FILTER["group"] = "default"
         else:
@@ -332,17 +332,17 @@ elif TASK == "greaterthan":
     get_true_edges = partial(get_greaterthan_true_edges, model=things.tl_model)
 
     SP_PRE_RUN_FILTER["group"] = "tracr-shuffled-redo"
-    SP_PROJECT_NAME = "remix_school-of-rock/induction_arthur"  # moved here manually
+    SP_PROJECT_NAME = "jailbreak_llm/induction_arthur"  # moved here manually
 
     if METRIC == "kl_div" and not RESET_NETWORK:
         if ZERO_ABLATION:
-            ACDC_PROJECT_NAME = "remix_school-of-rock/arthur_greaterthan_zero_sweep"
+            ACDC_PROJECT_NAME = "jailbreak_llm/arthur_greaterthan_zero_sweep"
             ACDC_PRE_RUN_FILTER = {}
         else:
             del ACDC_PRE_RUN_FILTER["group"]
 
     if METRIC == "greaterthan" and not RESET_NETWORK and not ZERO_ABLATION:
-        ACDC_PROJECT_NAME = "remix_school-of-rock/arthur_greaterthan_sweep_fixed_random"
+        ACDC_PROJECT_NAME = "jailbreak_llm/arthur_greaterthan_sweep_fixed_random"
         ACDC_PRE_RUN_FILTER = {}
     elif METRIC == "greaterthan":
         ACDC_PRE_RUN_FILTER["group"] = "gt-fix-metric"

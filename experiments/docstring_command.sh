@@ -2,10 +2,10 @@
 #SBATCH --partition=long
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=50G
-#SBATCH --time=08:00:00
-#SBATCH --output=docstring_job_attn-only-4l.out
-#SBATCH --error=docstring_job_attn-only-4l.err
+#SBATCH --mem=40G
+#SBATCH --time=00:20:00
+#SBATCH --output=docstring_seccache.out
+#SBATCH --error=docstring_seccache.err
 
 # Your commands go here
 module load anaconda/3
@@ -15,4 +15,4 @@ export PYTHONPATH="${PYTHONPATH}:/home/mila/p/paria.mehrbod/scratch/jailbreak_ll
 echo $PYTHONPATH
 
 
-python acdc/main.py --task=docstring --threshold=0.09500 --using-wandb --wandb-run-name=launch_docstring-acdc-000 --wandb-group-name=acdc-docstring --device=cuda --reset-network=0 --seed=516626229 --metric=kl_div --torch-num-threads=4 --wandb-dir=wandb_runs/ --wandb-mode=online --max-num-epochs=100000
+python acdc/main.py --task=docstring --threshold=0.09500 --wandb-run-name=launch_docstring-acdc-seccache --wandb-group-name=acdc-docstring-test --device=cuda --reset-network=0 --seed=516626229 --metric=kl_div --torch-num-threads=4 --wandb-dir=wandb_runs/ --wandb-mode=online --max-num-epochs=10000  --first-cache-cpu=False --second-cache-cpu=True

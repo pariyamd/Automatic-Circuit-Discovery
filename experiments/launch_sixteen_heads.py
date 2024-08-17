@@ -17,6 +17,8 @@ from copy import deepcopy
 import torch
 import wandb
 import tqdm
+import pandas as pd
+import os
 
 from transformer_lens import HookedTransformer 
 from acdc.TLACDCCorrespondence import TLACDCCorrespondence
@@ -56,7 +58,6 @@ from subnetwork_probing.transformer_lens.transformer_lens.HookedTransformer impo
 from subnetwork_probing.transformer_lens.transformer_lens.HookedTransformerConfig import HookedTransformerConfig as SPHookedTransformerConfig
 from subnetwork_probing.train import do_random_resample_caching, do_zero_caching
 from subnetwork_probing.transformer_lens.transformer_lens.hook_points import MaskedHookPoint
-
 set_plotly_renderer("emacs")
 
 #%%
@@ -100,15 +101,15 @@ if args.torch_num_threads > 0:
     torch.set_num_threads(args.torch_num_threads)
 torch.manual_seed(args.seed)
 
-wandb.init(
-    name=args.wandb_run_name,
-    project=args.wandb_project,
-    entity=args.wandb_entity,
-    group=args.wandb_group,
-    config=args,
-    dir=args.wandb_dir,
-    mode=args.wandb_mode,
-)
+# wandb.init(
+#     name=args.wandb_run_name,
+#     project=args.wandb_project,
+#     entity=args.wandb_entity,
+#     group=args.wandb_group,
+#     config=args,
+#     dir=args.wandb_dir,
+#     mode=args.wandb_mode,
+# )
 
 #%%
 
@@ -130,7 +131,7 @@ elif args.task == "docstring":
     num_examples = 50
     seq_len = 41
     things = get_all_docstring_things(num_examples=num_examples, seq_len=seq_len, device=args.device,
-                                                metric_name=args.metric, correct_incorrect_wandb=True, model_type=args.model_type)
+                                                metric_name=args.metric, correct_incorrect_wandb=False, model_type=args.model_type)
 elif args.task == "greaterthan":
     num_examples = 100
     things = get_all_greaterthan_things(num_examples=num_examples, metric_name=args.metric, device=args.device)
@@ -286,7 +287,7 @@ nodes_names_indices.sort(key=lambda x: prune_scores[x[1]][x[2]].item(), reverse=
 # %%
 
 serializable_nodes_names_indices = [(list(map(str, nodes)), name, repr(idx), prune_scores[name][idx].item()) for nodes, name, idx in nodes_names_indices]
-wandb.log({"nodes_names_indices": serializable_nodes_names_indices})
+# wandb.log({"nodes_names_indices": serializable_nodes_names_indices})
 
 # %%
 
@@ -297,7 +298,7 @@ def test_metrics(logits, score):
 
 # Log metrics without ablating anything
 logits = do_random_resample_caching(model, things.test_data)
-wandb.log(test_metrics(logits, math.inf))
+# wandb.log(test_metrics(logits, math.inf))
 
 # %%
 
@@ -333,8 +334,41 @@ for nodes, hook_name, idx in tqdm.tqdm(nodes_names_indices):
     to_log_dict["number_of_edges"] = corr.count_no_edges()
 
     print(to_log_dict)
-    wandb.log(to_log_dict)
+    # wandb.log(to_log_dict)
+
+    log_dict = {
+        "wandb-name": args.wandb_run_name,
+        "wandb-project": args.wandb_project,
+        "wandb-entity": args.wandb_entity,
+        "wandb-group": args.wandb_group,
+        "device": args.device,
+        "loss-type": args.metric,
+        "threshold": args.threshold,
+        "zero-ablation": args.zero_ablation,
+        "reset-subject": args.reset_network,
+        "seed": args.seed,
+        "num-examples": args.num_examples,
+        "seq-len": args.seq_len,
+        "task": args.task,
+        "torch-num-threads": args.torch_num_threads,
+        "model-type": args.model_type
+    }
+    
+    # Rest of the code...
+
+    
+    # Update log_dict with to_log_dict
+    log_dict.update(to_log_dict)
+    df = pd.DataFrame([log_dict])
+    existing_csv_path = f"acdc/logs/{args.task}.csv"
+    if os.path.exists(existing_csv_path):
+        existing_df = pd.read_csv(existing_csv_path)
+        updated_df = pd.concat([existing_df, df], ignore_index=True)
+        updated_df.to_csv(existing_csv_path, index=False)
+    else:
+        df.to_csv(existing_csv_path, index=False)
+
 
 # %%
 
-wandb.finish()
+# wandb.finish()

@@ -23,7 +23,7 @@ import wandb
 from transformer_lens.HookedTransformer import HookedTransformer
 
 def get_gpt2_small(device="cuda") -> HookedTransformer:
-    tl_model = HookedTransformer.from_pretrained("gpt2")
+    tl_model = HookedTransformer.from_pretrained_no_processing("gpt2", dtype=torch.bfloat16)
     tl_model = tl_model.to(device)
     tl_model.set_use_attn_result(True)
     tl_model.set_use_split_qkv_input(True)

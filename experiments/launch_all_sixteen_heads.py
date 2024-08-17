@@ -13,7 +13,7 @@ METRICS_FOR_TASK = {
 }
 
 
-CPU = 2
+# CPU = 2
 
 def main(TASKS: list[str], job: KubernetesJob, name: str, group_name: str):
     seed = 1259281515
@@ -46,9 +46,12 @@ def main(TASKS: list[str], job: KubernetesJob, name: str, group_name: str):
                         f"--reset-network={reset_network}",
                         f"--seed={random.randint(0, 2**32 - 1)}",
                         f"--metric={metric}",
-                        f"--torch-num-threads={CPU}",
-                        "--wandb-dir=/root/.cache/huggingface/tracr-training/16heads",  # If it doesn't exist wandb will use /tmp
+                        f"--torch-num-threads=0",
+                        "--wandb-dir=wandb_runs/",  # If it doesn't exist wandb will use /tmp
                         f"--wandb-mode=online",
+                        "--max-num-epochs=10000",
+                        "--first-cache-cpu=False",
+                        "--second-cache-cpu=False",
                     ]
                     if zero_ablation:
                         command.append("--zero-ablation")

@@ -58,6 +58,8 @@ except Exception as e:
 # <h2>Imports etc</h2>
 
 #%%
+import math
+import pandas as pd
 import wandb
 import IPython
 from IPython.display import Image, display
@@ -132,6 +134,7 @@ from acdc.acdc_graphics import (
     show
 )
 import argparse
+from subnetwork_probing.train import do_random_resample_caching, do_zero_caching
 
 torch.autograd.set_grad_enabled(False)
 
@@ -275,7 +278,7 @@ elif TASK == "docstring":
         seq_len=seq_len,
         device=DEVICE,
         metric_name=args.metric,
-        correct_incorrect_wandb=True,
+        correct_incorrect_wandb=False,
         model_type=args.model_type
     )
 elif TASK == "greaterthan":
@@ -367,11 +370,11 @@ exp_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 for i in range(args.max_num_epochs):
     exp.step(testing=False)
 
-    show(
-        exp.corr,
-        f"ims/img_new_{i+1}.png",
-        show_full_index=False,
-    )
+    # show(
+    #     exp.corr,
+    #     f"ims/img_new_{i+1}.png",
+    #     show_full_index=False,
+    # )
 
     if IN_COLAB or ipython is not None:
         # so long as we're not running this as a script, show the image!
@@ -402,6 +405,51 @@ if USING_WANDB:
     os.remove(edges_fname)
     wandb.finish()
 
+
+
+def test_metrics(logits, score):
+    d = {"test_"+k: fn(logits).mean().item() for k, fn in things.test_metrics.items()}
+    d["score"] = score
+    return d
+
+# Log metrics without ablating anything
+# logits = do_random_resample_caching(exp.model, things.test_data)
+to_log_dict = test_metrics(exp.model(things.test_data), math.inf)
+to_log_dict["number_of_edges"] = exp.count_no_edges()
+
+print(to_log_dict)
+# wandb.log(to_log_dict)
+
+log_dict = {
+    "wandb-name": args.wandb_run_name,
+    "wandb-project": args.wandb_project_name,
+    "wandb-entity": args.wandb_entity_name,
+    "wandb-group": args.wandb_group_name,
+    "device": args.device,
+    "loss-type": args.metric,
+    "threshold": args.threshold,
+    "zero-ablation": args.zero_ablation,
+    "reset-subject": args.reset_network,
+    "seed": args.seed,
+    # "num-examples": args.num_examples,
+    # "seq-len": args.seq_len,
+    "task": args.task,
+    "torch-num-threads": args.torch_num_threads,
+    "model-type": args.model_type
+}
+
+# Update log_dict with to_log_dict
+log_dict.update(to_log_dict)
+df = pd.DataFrame([log_dict])
+existing_csv_path = f"acdc/logs/{args.task}.csv"
+if os.path.exists(existing_csv_path):
+    existing_df = pd.read_csv(existing_csv_path)
+    updated_df = pd.concat([existing_df, df], ignore_index=True)
+    updated_df.to_csv(existing_csv_path, index=False)
+else:
+    df.to_csv(existing_csv_path, index=False)
+
+
 # %% [markdown]
 # <h2>Save the final subgraph of the model</h2>
 # <p>There are more than `exp.count_no_edges()` here because we include some "placeholder" edges needed to make ACDC work that don't actually matter</p>
@@ -409,7 +457,8 @@ if USING_WANDB:
 # <p>We recover minimal induction machinery! `embed -> a0.0_v -> a1.6k`</p>
 
 #%%
-exp.save_subgraph(
-    return_it=True,
-)
+# exp.save_subgraph(
+#     return_it=True,
+# )
+
 # %%

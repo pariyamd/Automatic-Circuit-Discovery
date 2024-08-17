@@ -68,7 +68,7 @@ def get_docstring_model(device="cuda"):
 def get_llama_2_7b_hf(device,seq_len) -> HookedTransformer:
     LLAMA_2_7B_PATH = "meta-llama/Llama-2-7b-hf"
 
-    tokenizer = LlamaTokenizer.from_pretrained(LLAMA_2_7B_PATH, max_length=seq_len) # not sure if this imposes the seq len to 300
+    tokenizer = LlamaTokenizer.from_pretrained(LLAMA_2_7B_PATH, max_length=seq_len, token = "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") # not sure if this imposes the seq len to 300
     tokenizer.pad_token = tokenizer.eos_token
     hf_model = LlamaForCausalLM.from_pretrained(LLAMA_2_7B_PATH, low_cpu_mem_usage=True)
     tl_model = HookedTransformer.from_pretrained(LLAMA_2_7B_PATH,

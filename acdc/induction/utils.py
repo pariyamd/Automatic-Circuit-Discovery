@@ -37,7 +37,7 @@ from transformer_lens import HookedTransformer
 from acdc.acdc_utils import kl_divergence, negative_log_probs
 
 def get_model(device):
-    tl_model = HookedTransformer.from_pretrained(
+    tl_model = HookedTransformer.from_pretrained_no_processing(
         "redwood_attn_2l",  # load Redwood's model
         center_writing_weights=False,  # these are needed as this model is a Shortformer; this is a technical detail
         center_unembed=False,

@@ -39,8 +39,8 @@ def main(TASKS: list[str], job: Optional[KubernetesJob], name: str, testing: boo
 
     commands: List[List[str]] = []
     for reset_network in [int(reset_networks)]:
-        for zero_ablation in [0, 1]:
-            for task in TASKS:
+        for task in TASKS:
+            for zero_ablation in [0, 1]:
                 for metric in METRICS_FOR_TASK[task]:
                     if task.startswith("tracr"):
                         # Typical metric value range: 0.0-0.1
@@ -70,7 +70,7 @@ def main(TASKS: list[str], job: Optional[KubernetesJob], name: str, testing: boo
                         seq_len = 41
                         if metric == "kl_div":
                             # Typical metric value range: 0.0-10.0
-                            regularization_params = expensive_base_regularization_params
+                            regularization_params = base_regularization_params #changed by pariya
                         elif metric == "docstring_metric":
                             # Typical metric value range: -1.0 - 0.0
                             regularization_params = 10 ** np.linspace(-4, 2, 21)
@@ -93,10 +93,10 @@ def main(TASKS: list[str], job: Optional[KubernetesJob], name: str, testing: boo
                         num_examples  = 50
                         if metric == "kl_div":
                             # Typical metric value range: 0.0-16.0
-                            regularization_params = expensive_base_regularization_params
+                            regularization_params = base_regularization_params
                         elif metric == "nll":
                             # Typical metric value range: 0.0-16.0
-                            regularization_params = expensive_base_regularization_params
+                            regularization_params = base_regularization_params
                         else:
                             raise ValueError("Unknown metric")
                     else:
@@ -110,16 +110,16 @@ def main(TASKS: list[str], job: Optional[KubernetesJob], name: str, testing: boo
                         device = "cuda" if job.gpu else "cpu"
                         n_cpu = job.cpu
 
-                    for lambda_reg in [0.01] if testing else regularization_params:
+                    for i in [0.01] if testing else range(0,len(regularization_params),3):
+                        lambda_reg = regularization_params[i]
                         command = [
                             "python",
                             "subnetwork_probing/train.py",
                             f"--task={task}",
-                            f"--lambda-reg={lambda_reg:.3f}",
-                            f"--wandb-name=agarriga-sp-{len(commands):05d}{'-optional' if task in ['induction', 'docstring'] else ''}",
-                            "--wandb-project=induction-sp-replicate",
-                            "--wandb-entity=remix_school-of-rock",
-                            "--wandb-group=tracr-shuffled-redo",
+                            f"--lambda_reg={lambda_reg:.3f}",
+                            f"--wandb-name=launch-sp-{task}-{len(commands):05d}",
+                            "--wandb-project=jailbreak_llm",
+                            f"--wandb-group=sp-{task}",
                             f"--device={device}",
                             f"--epochs={1 if testing else 10000}",
                             f"--zero-ablation={zero_ablation}",
@@ -134,19 +134,20 @@ def main(TASKS: list[str], job: Optional[KubernetesJob], name: str, testing: boo
                             f"--torch-num-threads={n_cpu}",
                         ]
                         commands.append(command)
-
-    launch(
-        commands,
-        name=name,
-        job=job,
-        synchronous=True,
-        check_wandb=wandb_identifier,
-        just_print_commands=False,
-    )
+    for command in commands:
+        print(" ".join(command))
+    # launch(
+    #     commands,
+    #     name=name,
+    #     job=job,
+    #     synchronous=True,
+    #     check_wandb=wandb_identifier,
+    #     just_print_commands=False,
+    # )
 
 if __name__ == "__main__":
-    for reset_networks in [False, True]:
-        for task in ["tracr-reverse"]:
+    for reset_networks in [True]:
+        for task in ["tracr-reverse","tracr-proportion","docstring"]: #"ioi","greaterthan", "induction"
             main(
                 [task],
                 KubernetesJob(

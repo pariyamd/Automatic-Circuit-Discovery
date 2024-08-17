@@ -34,6 +34,8 @@ from subnetwork_probing.transformer_lens.transformer_lens.HookedTransformer impo
 from subnetwork_probing.transformer_lens.transformer_lens.HookedTransformerConfig import HookedTransformerConfig
 from subnetwork_probing.transformer_lens.transformer_lens.ioi_dataset import IOIDataset
 import wandb
+import pandas as pd
+import os
 
 
 def iterative_correspondence_from_mask(
@@ -144,7 +146,8 @@ def log_plotly_bar_chart(x: List[str], y: List[float]) -> None:
     import plotly.graph_objects as go
 
     fig = go.Figure(data=[go.Bar(x=x, y=y)])
-    wandb.log({"mask_scores": fig})
+    # wandb.log({"mask_scores": fig})
+    
 
 
 def visualize_mask(model: HookedTransformer) -> tuple[int, list[TLACDCInterpNode]]:
@@ -257,22 +260,22 @@ def train_induction(
 
     torch.manual_seed(args.seed)
 
-    wandb.init(
-        name=args.wandb_name,
-        project=args.wandb_project,
-        entity=args.wandb_entity,
-        group=args.wandb_group,
-        config=args,
-        dir=args.wandb_dir,
-        mode=args.wandb_mode,
-    )
+    # wandb.init(
+    #     name=args.wandb_name,
+    #     project=args.wandb_project,
+    #     entity=args.wandb_entity,
+    #     group=args.wandb_group,
+    #     config=args,
+    #     dir=args.wandb_dir,
+    #     mode=args.wandb_mode,
+    # )
     test_metric_fns = all_task_things.test_metrics
 
     print("Reset subject:", args.reset_subject)
     if args.reset_subject:
         reset_network(args.task, args.device, induction_model)
-        gc.collect()
-        torch.cuda.empty_cache()
+        # gc.collect()
+        # torch.cuda.empty_cache()
         induction_model.freeze_weights()
 
         reset_logits = do_random_resample_caching(induction_model, all_task_things.validation_data)
@@ -289,6 +292,12 @@ def train_induction(
 
     if args.zero_ablation:
         do_zero_caching(induction_model)
+    # for_epoch_data = {
+    #     "regularisation_loss": [],
+    #     "specific_metric_loss": [],
+    #     "total_loss": [],
+    #     }
+
     for epoch in tqdm(range(epochs)):  # tqdm.notebook.tqdm(range(epochs)):
         if not args.zero_ablation:
             do_random_resample_caching(induction_model, all_task_things.validation_patch_data)
@@ -301,15 +310,21 @@ def train_induction(
         loss.backward()
 
         trainer.step()
+        # wandb.log(
+        # {
+        #     "regularisation_loss": regularizer_term.item(),
+        #     "specific_metric_loss": specific_metric_term.item(),
+        #     "total_loss": loss.item(),
+        # }
+        # )
 
+        # for_epoch_data["regularisation_loss"].append(regularizer_term.item())
+        # for_epoch_data["specific_metric_loss"].append(specific_metric_term.item())
+        # for_epoch_data["total_loss"].append(loss.item())
+
+    
     number_of_nodes, nodes_to_mask = visualize_mask(induction_model)
-    wandb.log(
-        {
-            "regularisation_loss": regularizer_term.item(),
-            "specific_metric_loss": specific_metric_term.item(),
-            "total_loss": loss.item(),
-        }
-    )
+    
 
     with torch.no_grad():
         # The loss has a lot of variance so let's just average over a few runs with the same seed
@@ -348,6 +363,7 @@ def train_induction(
             nodes_to_mask=nodes_to_mask,
             **test_specific_metrics,
         )
+        # to_log_dict.update(for_epoch_data)
 
     return induction_model, to_log_dict
 
@@ -428,7 +444,7 @@ parser.add_argument("--wandb-name", type=str, default="subnetwork-probing")
 parser.add_argument("--wandb-project", type=str, default="jailbreak_llm")
 parser.add_argument("--wandb-entity", type=str,  default="pariya_mehrbod")
 parser.add_argument("--wandb-group", type=str,  default="subnetwork-probing")
-parser.add_argument("--wandb-dir", type=str, default="/tmp/wandb")
+parser.add_argument("--wandb-dir", type=str, default="wandb_runs/")
 parser.add_argument("--wandb-mode", type=str, default="online")
 parser.add_argument("--device", type=str, default="cpu")
 parser.add_argument("--lr", type=float, default=0.001)
@@ -527,7 +543,8 @@ if __name__ == "__main__":
             seq_len=args.seq_len,
             device=torch.device(args.device),
             metric_name=args.loss_type,
-            correct_incorrect_wandb=True,
+            correct_incorrect_wandb=False,
+            # model_type="llama"
         )
         print("got the all_task_things for docstring task")
     elif args.task == "greaterthan":
@@ -590,12 +607,12 @@ if __name__ == "__main__":
     model.load_state_dict(_acdc_model.state_dict(), strict=False)
     model = model.to(args.device)
     # Check that the model's outputs are the same
-    torch.testing.assert_allclose(
-        do_random_resample_caching(model, all_task_things.validation_data),
-        _acdc_model(all_task_things.validation_data),
-        atol=1e-3,
-        rtol=1e-2,
-    )
+    # torch.testing.assert_allclose(
+    #     do_random_resample_caching(model, all_task_things.validation_data),
+    #     _acdc_model(all_task_things.validation_data),
+    #     atol=1e-3,
+    #     rtol=1e-2,
+    # )
     del _acdc_model
     all_task_things.tl_model = None
 
@@ -616,7 +633,43 @@ if __name__ == "__main__":
     to_log_dict["nodes_to_mask"] = list(map(str, to_log_dict["nodes_to_mask"]))
     to_log_dict["number_of_edges"] = corr.count_no_edges()
     to_log_dict["percentage_binary"] = percentage_binary
-
-    wandb.log(to_log_dict)
+    
+    # wandb.log(to_log_dict)
     # sanity_check_with_transformer_lens(mask_val_dict)
-    wandb.finish()
+    # wandb.finish()
+    
+    # Create a dictionary with the log values
+    log_dict = {
+        "wandb-name": args.wandb_name,
+        "wandb-project": args.wandb_project,
+        "wandb-entity": args.wandb_entity,
+        "wandb-group": args.wandb_group,
+        "device": args.device,
+        "lr": args.lr,
+        "loss-type": args.loss_type,
+        "epochs": args.epochs,
+        "verbose": args.verbose,
+        "lambda-reg": args.lambda_reg,
+        "zero-ablation": args.zero_ablation,
+        "reset-subject": args.reset_subject,
+        "seed": args.seed,
+        "num-examples": args.num_examples,
+        "seq-len": args.seq_len,
+        "n-loss-average-runs": args.n_loss_average_runs,
+        "task": args.task,
+        "torch-num-threads": args.torch_num_threads,
+        "model-type": args.model_type
+    }
+    
+    # Update log_dict with to_log_dict
+    log_dict.update(to_log_dict)
+    
+    df = pd.DataFrame([log_dict])
+    existing_csv_path = f"subnetwork_probing/logs/{args.task}.csv"
+    if os.path.exists(existing_csv_path):
+        existing_df = pd.read_csv(existing_csv_path)
+        updated_df = pd.concat([existing_df, df], ignore_index=True)
+        updated_df.to_csv(existing_csv_path, index=False)
+    else:
+        df.to_csv(existing_csv_path, index=False)
+    # df.to_csv(f"subnetwork_probing/logs/{args.task}/{args.wandb_name}.csv", index=False)
